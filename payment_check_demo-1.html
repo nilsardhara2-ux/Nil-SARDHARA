@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#142b52">
+<title>Payment Check — Demo</title>
+<style>
+:root{--navy:#142b52;--blue:#2563eb;--bg:#f3f6fb;--ink:#172033;--muted:#68758b;--line:#e5eaf2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Noto Sans Gujarati",sans-serif;color:var(--ink)}
+.app{max-width:480px;margin:auto;min-height:100vh;padding:18px 16px 32px}
+header{display:flex;align-items:center;gap:12px;margin:4px 0 18px}.logo{width:44px;height:44px;border-radius:14px;background:#e7efff;display:grid;place-items:center;font-size:23px}
+h1{font-size:20px;margin:0;color:var(--navy)}.sub{font-size:12px;color:var(--muted)}
+.demo{margin-left:auto;background:#fff0d8;color:#8b5200;border:1px solid #ffdda8;padding:6px 9px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.4px}
+.balance{background:linear-gradient(135deg,#142b52,#24539a);color:white;border-radius:24px;padding:22px;box-shadow:0 12px 28px #142b5225}
+.balance small{opacity:.8}.amount{font-size:36px;font-weight:800;margin:8px 0 3px}.balance-foot{font-size:12px;opacity:.8}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+button{border:0;border-radius:14px;padding:13px 12px;font:inherit;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:white}.secondary{background:white;color:var(--navy);border:1px solid var(--line)}
+.panel{background:white;border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:14px}
+.panel h2{font-size:16px;margin:0 0 13px}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}
+input,select{width:100%;padding:12px;border:1px solid #d9e1ed;border-radius:12px;font:inherit;background:white}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.submit{width:100%;margin-top:14px}
+.tx{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line)}
+.txicon{width:38px;height:38px;border-radius:13px;background:#eef3ff;display:grid;place-items:center}
+.txmain{flex:1;min-width:0}.txmain strong{display:block;font-size:13px}.txmain small{font-size:11px;color:var(--muted)}
+.money{font-weight:800;font-size:13px}.in{color:#16834a}.out{color:#c24141}
+.empty{text-align:center;color:var(--muted);font-size:13px;padding:18px 4px}
+.note{font-size:11px;line-height:1.5;color:var(--muted);text-align:center;margin:18px 6px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#172033;color:white;padding:11px 16px;border-radius:12px;font-size:13px;display:none;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="logo">💳</div><div><h1>Payment Check</h1><div class="sub">તમારું ડેમો વૉલેટ</div></div><span class="demo">DEMO ONLY</span></header>
+<section class="balance">
+  <small>ડેમો વૉલેટ બેલેન્સ</small>
+  <div class="amount" id="balance">₹0.00</div>
+  <div class="balance-foot">આ વાસ્તવિક બેંક બેલેન્સ નથી</div>
+</section>
+<div class="actions">
+<button class="primary" onclick="showForm('in')">＋ પૈસા ઉમેરો</button>
+<button class="secondary" onclick="showForm('out')">↗ ખર્ચ ઉમેરો</button>
+</div>
+<section class="panel" id="entry" hidden>
+<h2 id="formTitle">નવી એન્ટ્રી</h2>
+<label>વિગત / નામ</label><input id="desc" maxlength="40" placeholder="ઉદાહરણ: Pocket money">
+<div class="row">
+<div><label>રકમ (₹)</label><input id="amountInput" type="number" min="1" max="1000000" placeholder="500"></div>
+<div><label>પ્રકાર</label><select id="type"><option value="in">પૈસા આવ્યા</option><option value="out">પૈસા ગયા</option></select></div>
+</div>
+<button class="primary submit" onclick="addEntry()">ડેમો એન્ટ્રી સેવ કરો</button>
+</section>
+<section class="panel">
+<h2>ટ્રાન્ઝેક્શન હિસ્ટ્રી</h2>
+<div id="history"><div class="empty">હજુ કોઈ એન્ટ્રી નથી.<br>ઉપરથી ડેમો એન્ટ્રી ઉમેરો.</div></div>
+</section>
+<p class="note">⚠️ આ માત્ર પ્રેક્ટિસ માટેની ડેમો એપ છે. કોઈ બેંક, UPI અથવા વાસ્તવિક પેમેન્ટ સાથે જોડાયેલી નથી. અહીં ઉમેરેલી એન્ટ્રીઓ ફક્ત આ બ્રાઉઝરમાં રહે છે.</p>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let entries=[];let mode='in';
+try{entries=JSON.parse(localStorage.getItem('pc_demo_entries')||'[]')}catch(e){entries=[]}
+function showForm(m){mode=m;document.getElementById('type').value=m;document.getElementById('formTitle').textContent=m==='in'?'પૈસા ઉમેરો':'ખર્ચ ઉમેરો';document.getElementById('entry').hidden=false;document.getElementById('desc').focus()}
+function addEntry(){
+ const desc=document.getElementById('desc').value.trim()||'ડેમો ટ્રાન્ઝેક્શન';
+ const amount=Number(document.getElementById('amountInput').value);
+ const type=document.getElementById('type').value;
+ if(!Number.isFinite(amount)||amount<=0||amount>1000000){toast('કૃપા કરીને યોગ્ય રકમ લખો.');return}
+ entries.unshift({desc,amount,type,date:new Date().toLocaleString('gu-IN')});
+ try{localStorage.setItem('pc_demo_entries',JSON.stringify(entries))}catch(e){}
+ document.getElementById('desc').value='';document.getElementById('amountInput').value='';
+ document.getElementById('entry').hidden=true;render();toast('ડેમો એન્ટ્રી સેવ થઈ ગઈ.');
+}
+function render(){
+ const total=entries.reduce((s,e)=>s+(e.type==='in'?e.amount:-e.amount),0);
+ document.getElementById('balance').textContent='₹'+total.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const h=document.getElementById('history');
+ if(!entries.length){h.innerHTML='<div class="empty">હજુ કોઈ એન્ટ્રી નથી.<br>ઉપરથી ડેમો એન્ટ્રી ઉમેરો.</div>';return}
+ h.innerHTML=entries.map(e=>`<div class="tx"><div class="txicon">${e.type==='in'?'⬇️':'⬆️'}</div><div class="txmain"><strong>${escapeHtml(e.desc)}</strong><small>${escapeHtml(e.date)} · DEMO</small></div><div class="money ${e.type==='in'?'in':'out'}">${e.type==='in'?'+':'−'}₹${e.amount.toLocaleString('en-IN')}</div></div>`).join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(t){let el=document.getElementById('toast');el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',2200)}
+render();
+</script>
+</body>
+</html>
